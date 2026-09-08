@@ -1,0 +1,37 @@
+Se requiere hacer el setup de una infraestructura para soportar una arquitectura de aplicaciones que incluyen principalmente: Bitcoin Core, LND y LNbits.
+El requerimiento viene de un curso que tiene fases iterativas para montar la infraestructura requerida en pasos incrementales que deben seguirse, es decir, primero se hace la configuración de un componente, y luego secuencialmente se agregan otros componentes necesarios para obtener la arquitectura objetivo.
+Primero se usará Docker y Docker Compose para los intentos y pruebas iniciales, después cuando se tenga una infraestructura estable que soporte la arquitectura objetivo (Bitcoin Core, LND y LNbits), es posible que se requiera reproducir la infraestructura fuera de Docker directamente en la máquina "host".
+Primero se debe hacer y explicar el plan, y solamente después de revisar y verificar ese plan, se pasaría a ejecutarlo.
+
+Los pasos incrementales o fases requeridas por el curso que deben seguirse son cuatro que a continuación se listan, pero que posteriormente se ampliarán y describirán en mayor detalle:
+1. Configuración de SO (Sistema Operativo) Ubuntu, junto con TOR y SSh.
+2. Instalación y configuración de Bitcoin Core usando la red "TestNet4", y usando el modo prune (poda) de la block chain para moderar el espacio de almacenamiento en disco físico utilizado por el nodo Bitcoin.
+3. Instalación y configuración de LND (Lightning Network Daemon).
+4. Financiación del recientemente creado y configurado nodo Bitcoin por medio de faucets, para tener suficiente saldo o balance para abrir y operar canales, tener suficientes "satoshis" para los fees (comisiones) y para hacer algunas transacciones de prueba.
+Además de estas cuatro fases iniciales, quedarán faltando otras fases posteriores, las que incluirán la instalación y configuración de LNbits y otras aplicaciones requeridas, pero estas futuras fases todavía no se implementarán.
+
+Instrucciones detalladas de las cuatro fases iniciales para montar la infraestructura requerida para obtener la arquitectura objetivo (Bitcoin Core, LND y LNbits):
+
+1. Configuración de SO (Sistema Operativo) Ubuntu, junto con TOR y SSh.
+Se debe analizar el archivo "modulo_3_linux_tor.md" contenido en este mismo directorio del proyecto actual, para ver las sugerencias y detalles de las instalaciones, configuraciones y requerimientos de esta primera fase.
+Se deben generar tanto un Dockerfile como un archivo compose.yml apropiados para esta primera fase.
+
+2. Instalación y configuración de Bitcoin Core usando la red "TestNet4", y usando el modo prune (poda) de la block chain para moderar el espacio de almacenamiento en disco físico utilizado por el nodo Bitcoin.
+Se debe analizar el archivo "modulo_4_bitcoin_core.md" contenido en este mismo directorio del proyecto actual, para ver las sugerencias y detalles de las instalaciones, configuraciones y requerimientos de esta segunda fase. Se deben tener en cuenta los archivos de configuración necesarios, y ensayar y verificar el funcionamiento de las aplicaciones recién instaladas y configuradas.
+Se deben generar nuevos o actualizar los existentes archivos Dockerfile y compose.yml que sean apropiados para esta segunda fase. Si es necesario y adecuado generar "multi-stage" Dockerfile y compose.yml . Tener en cuenta que un aspecto importante de esta fase, es configurar el nodo Bitcoin Core en modo prune (o podado) con un tamaño máximo propuesto de 550 MiB.
+
+3. Instalación y configuración de LND (Lightning Network Daemon).
+Se debe analizar el archivo "modulo_5_lnd_lightning.md" contenido en este mismo directorio del proyecto actual, para ver las sugerencias y detalles de las instalaciones, configuraciones y requerimientos de esta tercera fase. Se deben tener en cuenta requisitos como las dependencias y herramientas de compilación, el entorno "Go lang", el archivo de configuración necesario, y el ensayo y verificación del funcionamiento de las herramientas instaladas y configuradas.
+
+4. Financiación del recientemente creado y configurado nodo Bitcoin por medio de faucets, para tener suficiente saldo o balance para abrir y operar canales, tener suficientes "satoshis" para los fees (comisiones) y para hacer algunas transacciones de prueba.
+Ver el archivo "modulo_6_financiar_nodo.md" contenido en este mismo directorio del proyecto actual, para ver algunas sugerencias e información adicional con respecto a esta cuarta fase consistente en financiar el nodo para poder ejecutar operaciones y transacciones básicas. De ser necesario usar el truco de reiniciar la navegación con TOR para tener una IP distinta y poder acceder de nuevo a satoshis proveídos por los diferentes faucets (grifos).
+
+Generar dos scripts:
+- deploy.sh : Para lanzar la infraestructura y arquitectura diseñada, con las verificaciones básicas.
+- cleanup.sh : Para detener, eliminar y en general liberar y limpiar los recursos usados por esta infraestructura.
+
+Generar un archivo .gitignore adecuado para este proyecto.
+
+Generar un archivo README.md para permitir que otra persona construya y ejecute el proyecto sin consultar a quien lo escribió. Debe incluir: descripción del proyecto, requisitos previos, explicar cómo ejecutar las aplicaciones, comandos para construir y correr la arquitectura de aplicaciones diseñada, verificaciones realizadas y su resultado, cómo detener y limpiar los recursos usados.
+
+Como ya se había estipulado: Primero se debe hacer y explicar el plan, y solamente después de revisar y verificar ese plan, se pasaría a ejecutarlo.

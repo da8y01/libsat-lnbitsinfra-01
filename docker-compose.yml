@@ -1,0 +1,108 @@
+name: lnbits-infrastructure
+
+services:
+  # --- FASE 1: Ubuntu + TOR + SSH ---
+  base:
+    build:
+      context: ./phase1-base
+      dockerfile: Dockerfile
+      args:
+        SSH_PASSWORD: ${SSH_PASSWORD}
+    container_name: ubuntu-tor-ssh
+    hostname: ubuntu-tor-ssh
+    restart: unless-stopped
+    networks:
+      - lnbits_network
+    ports:
+      - "22:22"
+      - "9050:9050"
+      - "9051:9051"
+    volumes:
+      - tor_data:/var/lib/tor
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+      - TOR_HASHED_CONTROL_PASSWORD=${TOR_HASHED_CONTROL_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /var/run/supervisord.pid || pgrep -f supervisord"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # --- FASE 2: Bitcoin Core ---
+  bitcoind:
+    build:
+      context: ./phase2-bitcoin
+      dockerfile: Dockerfile
+    container_name: bitcoind
+    hostname: bitcoind
+    restart: unless-stopped
+    networks:
+      - lnbits_network
+    ports:
+      - "18332:18332"
+      - "48333:48333"
+      - "28332:28332"
+      - "28333:28333"
+    volumes:
+      - bitcoin_data:/data
+    environment:
+      - TESTNET4=1
+      - BITCOIN_RPC_USER=${BITCOIN_RPC_USER}
+      - BITCOIN_RPC_PASSWORD=${BITCOIN_RPC_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "bitcoin-cli -testnet4 -datadir=/data/bitcoin -rpcuser=${BITCOIN_RPC_USER} -rpcpassword=${BITCOIN_RPC_PASSWORD} getblockchaininfo 2>&1 | grep -q '\"chain\": \"testnet4\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    depends_on:
+      - base
+
+  # --- FASE 3: LND ---
+  lnd:
+    build:
+      context: ./phase3-lnd
+      dockerfile: Dockerfile
+    container_name: lnd
+    hostname: lnd
+    restart: unless-stopped
+    networks:
+      - lnbits_network
+    ports:
+      - "9735:9735"
+      - "8080:8080"
+      - "10009:10009"
+    volumes:
+      - lnd_data:/data
+    environment:
+      - TESTNET4=1
+      - BITCOIN_RPC_USER=${BITCOIN_RPC_USER}
+      - BITCOIN_RPC_PASSWORD=${BITCOIN_RPC_PASSWORD}
+      - TOR_PASSWORD=${TOR_PASSWORD}
+      - LND_ALIAS=${LND_ALIAS}
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f '/usr/local/bin/lnd' >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    depends_on:
+      - bitcoind
+      - base
+
+networks:
+  lnbits_network:
+    name: lnbits_network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${DOCKER_SUBNET}
+
+volumes:
+  tor_data:
+    driver: local
+  bitcoin_data:
+    driver: local
+  lnd_data:
+    driver: local

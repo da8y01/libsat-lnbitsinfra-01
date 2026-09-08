@@ -1,0 +1,37 @@
+# Datos y configuración de las aplicaciones (runtime)
+data/
+*.conf.bak
+*.pid
+
+# Datos genados en runtime
+*.sqlite
+*.sqlite3
+
+# Volúmenes de Docker (montados en runtime)
+.volumes/
+docker-data/
+bitcoin-data/
+lnd-data/
+
+# Credenciales y secretos (generados en runtime)
+.env
+.env.*
+!.env.example
+logs/
+*.log
+*.key
+wallet.db
+
+# Archivos temporales
+tmp/
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+
+# Backups
+*.bak
+*.save
+
+# Directorio Go (compartido)
+go/bin/

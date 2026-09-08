@@ -1,0 +1,20 @@
+# Configuración de Tor para el proyecto LNbits
+# Puerto SOCKS para conexiones de clientes (accesible desde la red Docker para LND)
+SOCKSPort 0.0.0.0:9050
+
+# Directorio de datos de Tor
+DataDirectory /var/lib/tor
+
+# Puerto de control para configuración dinámica
+# Bind a todas las interfaces para que LND (otro contenedor) pueda usarlo.
+# Tor NO permite un ControlPort sin autenticación en direcciones no-locales,
+# por lo que se usa HashedControlPassword (credencial de laboratorio).
+ControlPort 0.0.0.0:9051
+HashedControlPassword 16:4A1025498CA13CC760DBEFCB5443971B80C071D4FDE745AABEABAC81A3
+
+# Servicio oculto para acceder a servicios locales
+HiddenServiceDir /var/lib/tor/hidden_service/
+HiddenServicePort 80 127.0.0.1:5000
+
+# Logging
+Log notice file /var/log/tor/notices.log
