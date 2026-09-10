@@ -1,3 +1,5 @@
+## Primer prompt:
+
 Se requiere hacer el setup de una infraestructura para soportar una arquitectura de aplicaciones que incluyen principalmente: Bitcoin Core, LND y LNbits.
 El requerimiento viene de un curso que tiene fases iterativas para montar la infraestructura requerida en pasos incrementales que deben seguirse, es decir, primero se hace la configuración de un componente, y luego secuencialmente se agregan otros componentes necesarios para obtener la arquitectura objetivo.
 Primero se usará Docker y Docker Compose para los intentos y pruebas iniciales, después cuando se tenga una infraestructura estable que soporte la arquitectura objetivo (Bitcoin Core, LND y LNbits), es posible que se requiera reproducir la infraestructura fuera de Docker directamente en la máquina "host".
@@ -35,3 +37,13 @@ Generar un archivo .gitignore adecuado para este proyecto.
 Generar un archivo README.md para permitir que otra persona construya y ejecute el proyecto sin consultar a quien lo escribió. Debe incluir: descripción del proyecto, requisitos previos, explicar cómo ejecutar las aplicaciones, comandos para construir y correr la arquitectura de aplicaciones diseñada, verificaciones realizadas y su resultado, cómo detener y limpiar los recursos usados.
 
 Como ya se había estipulado: Primero se debe hacer y explicar el plan, y solamente después de revisar y verificar ese plan, se pasaría a ejecutarlo.
+
+## Segundo prompt:
+
+Continuando con este proyecto incremental basado en los pasos de un curso de referencia, la Fase 5 sería: Integrar dos clientes web (RTL y satoshi-odyssey) al proyecto.
+Integrar las siguientes dos aplicaciones web que son clientes web para gestión de LND, como servicios al compose del proyecto:
+1. RTL (https://github.com/Ride-The-Lightning/RTL).
+2. satoshi-odyssey (https://github.com/btcol/satoshi-odyssey).
+Tener en cuenta, si las hay, dependencias a los otros servicios, posibles puertos repetidos, y verificar que la estructura del proyecto quede estable.
+Actualizar el archivo README.md (u otros archivos) en la medida de lo necesario.
+Generar y explicar un plan para revisarlo y verificarlo, y posteriormente ejecutarlo.

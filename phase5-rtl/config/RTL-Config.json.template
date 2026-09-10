@@ -1,0 +1,31 @@
+{
+  "multiPass": "__RTL_MULTIPASS__",
+  "port": "3000",
+  "defaultNodeIndex": 1,
+  "dbDirectoryPath": "/RTL/database",
+  "SSO": {
+    "rtlSSO": 0,
+    "rtlCookiePath": "",
+    "logoutRedirectLink": ""
+  },
+  "nodes": [
+    {
+      "index": 1,
+      "lnNode": "__LND_ALIAS__",
+      "lnImplementation": "LND",
+      "authentication": {
+        "macaroonPath": "/data/lnd/data/chain/bitcoin/testnet4"
+      },
+      "settings": {
+        "userPersona": "OPERATOR",
+        "themeMode": "DAY",
+        "themeColor": "PURPLE",
+        "logLevel": "ERROR",
+        "lnServerUrl": "https://lnd:8080",
+        "fiatConversion": false,
+        "unannouncedChannels": false,
+        "blockExplorerUrl": "https://mempool.space"
+      }
+    }
+  ]
+}

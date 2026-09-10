@@ -91,6 +91,84 @@ services:
       - bitcoind
       - base
 
+  # --- FASE 5: RTL (cliente web para LND) ---
+  # RTL reescribe su archivo de config al arrancar (con un mount de solo lectura
+  # sale con EROFS), por eso no se monta la plantilla directamente: un contenedor
+  # init genera /RTL-Config.json en el volumen rtl_config y RTL la lee/escribe ahí.
+  rtl-config-init:
+    image: busybox:1.36
+    container_name: rtl-config-init
+    restart: "no"
+    networks:
+      - lnbits_network
+    command: ["/bin/sh", "-c", "mkdir -p /config && sed -e 's|__RTL_MULTIPASS__|${RTL_MULTIPASS}|g' -e 's|__LND_ALIAS__|${LND_ALIAS}|g' /template/RTL-Config.json.template > /config/RTL-Config.json && chmod 644 /config/RTL-Config.json && echo 'config staged'"]
+    volumes:
+      - ./phase5-rtl/config/RTL-Config.json.template:/template/RTL-Config.json.template:ro
+      - rtl_config:/config
+
+  rtl:
+    image: shahanafarooqui/rtl:v0.15.11
+    container_name: rtl
+    hostname: rtl
+    restart: unless-stopped
+    networks:
+      - lnbits_network
+    ports:
+      - "${RTL_PORT:-3000}:3000"
+    environment:
+      - RTL_CONFIG_PATH=/RTL/config
+    volumes:
+      - lnd_data:/data:ro
+      - rtl_config:/RTL/config
+      - rtl_db:/RTL/database
+    depends_on:
+      rtl-config-init:
+        condition: service_completed_successfully
+      lnd:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # --- FASE 5: satoshi-odyssey (Dashboard web para LND) ---
+  satoshi-odyssey:
+    build:
+      context: ./phase5-satodyssey
+      dockerfile: Dockerfile
+    container_name: satoshi-odyssey
+    hostname: satoshi-odyssey
+    restart: unless-stopped
+    networks:
+      - lnbits_network
+    ports:
+      - "${SATODYSSEY_PORT:-9630}:9630"
+    volumes:
+      - lnd_data:/data:ro
+      - satoshi_data:/app/data
+    environment:
+      - WEB_USER=${SATODYSSEY_USER}
+      - WEB_PASS=${SATODYSSEY_PASS}
+      - WEB_PORT=9630
+      - WEB_HOST=0.0.0.0
+      - NETWORK=testnet4
+      - LND_DIR=/data/lnd
+      - LND_REST_HOST=https://lnd:8080
+      - LND_TLS_PATH=/data/lnd/tls.cert
+      - LND_MACAROON_PATH=/data/lnd/data/chain/bitcoin/testnet4/admin.macaroon
+      - LNCLI_BIN=/usr/local/bin/lncli-remote
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - lnd
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,os,base64;u=os.environ['WEB_USER'];p=os.environ['WEB_PASS'];h={'Authorization':'Basic '+base64.b64encode((u+':'+p).encode()).decode()};urllib.request.urlopen(urllib.request.Request('http://localhost:9630',headers=h),timeout=5)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
 networks:
   lnbits_network:
     name: lnbits_network
@@ -105,4 +183,10 @@ volumes:
   bitcoin_data:
     driver: local
   lnd_data:
+    driver: local
+  rtl_config:
+    driver: local
+  rtl_db:
+    driver: local
+  satoshi_data:
     driver: local

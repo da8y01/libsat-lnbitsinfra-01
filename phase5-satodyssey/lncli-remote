@@ -1,0 +1,22 @@
+#!/bin/bash
+# Wrapper para que satoshi-odyssey use el binario 'lncli' contra el contenedor
+# LND de esta infraestructura (todo corre en la red Docker lnbits_network).
+#
+# satoshi-odyssey (core/lnd_client.py) invoca ${LNCLI_BIN} con "-network=<red>".
+# Aquí se filtra ese flag para que no se duplique (lo fuerza este wrapper) y se
+# inyectan las credenciales de conexión: RPC lnd:10009, tls.cert y el
+# admin.macaroon leídos desde el volumen lnd_data (montado en /data, igual que
+# en el contenedor lnd, donde los datos están en /data/lnd).
+declare -a ARGS
+for a in "$@"; do
+  case "$a" in
+    -network=*|--network=*|-network|--network) ;;
+    *) ARGS+=("$a") ;;
+  esac
+done
+exec /usr/local/bin/lncli-real \
+    --network=testnet4 \
+    --rpcserver=lnd:10009 \
+    --tlscertpath=/data/lnd/tls.cert \
+    --macaroonpath=/data/lnd/data/chain/bitcoin/testnet4/admin.macaroon \
+    "${ARGS[@]}"

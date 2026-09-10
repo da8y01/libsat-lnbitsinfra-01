@@ -102,6 +102,25 @@ verify_services() {
         fi
     fi
 
+    # Verificar RTL (Fase 5)
+    echo -e "${YELLOW}→ Verificando RTL (Fase 5)...${NC}"
+    if curl -fsS -o /dev/null --max-time 15 "http://localhost:${RTL_PORT}/" 2>/dev/null; then
+        echo -e "  ${GREEN}✓ RTL responde en http://localhost:${RTL_PORT} (login)${NC}"
+    else
+        echo -e "  ${RED}✗ RTL no responde aún en http://localhost:${RTL_PORT}${NC}"
+    fi
+
+    # Verificar satoshi-odyssey (Fase 5)
+    echo -e "${YELLOW}→ Verificando satoshi-odyssey (Fase 5)...${NC}"
+    HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "http://localhost:${SATODYSSEY_PORT}/" 2>/dev/null)
+    if [ "$HTTP_CODE" = "401" ]; then
+        echo -e "  ${GREEN}✓ satoshi-odyssey responde en http://localhost:${SATODYSSEY_PORT} (pide autenticación: 401)${NC}"
+    elif curl -fsS -u "${SATODYSSEY_USER}:${SATODYSSEY_PASS}" -o /dev/null --max-time 15 "http://localhost:${SATODYSSEY_PORT}/" 2>/dev/null; then
+        echo -e "  ${GREEN}✓ satoshi-odyssey responde en http://localhost:${SATODYSSEY_PORT} (200)${NC}"
+    else
+        echo -e "  ${RED}✗ satoshi-odyssey no responde aún en http://localhost:${SATODYSSEY_PORT}${NC}"
+    fi
+
     echo ""
     echo -e "${GREEN}=== Proceso de despliegue completado ===${NC}"
 }
@@ -117,15 +136,19 @@ echo ""
 echo -e "${GREEN}Resumen de servicios:${NC}"
 echo "  - Bitcoin Core RPC: http://localhost:18332 (testnet4, prune 550 MiB)"
 echo "  - LND gRPC: localhost:10009 | REST: http://localhost:8080 | Lightning: 9735"
+echo "  - RTL (Fase 5):          http://localhost:${RTL_PORT} (password: ${RTL_MULTIPASS})"
+echo "  - satoshi-odyssey (Fase 5): http://localhost:${SATODYSSEY_PORT} (user/pass: ${SATODYSSEY_USER}/${SATODYSSEY_PASS})"
 echo "  - SSH: ssh root@localhost (password: ${SSH_PASSWORD})"
 echo "  - Tor SOCKS: localhost:9050 | Tor Control: localhost:9051"
 echo ""
-echo -e "${YELLOW}Pasos siguientes (Fases 3 y 4 del curso):${NC}"
+echo -e "${YELLOW}Pasos siguientes (Fases 3, 4 y 5 del curso):${NC}"
 echo "  1) Crear la wallet de LND:   docker exec -it lnd lnclictl create"
 echo "     >> GUARDE LA SEMILLA DE 24 PALABRAS EN UN LUGAR SEGURO <<"
 echo "  2) Verificar LND:            docker exec lnd lnclictl getinfo"
 echo "  3) Generar dirección para financiar (FASE 4):"
 echo "     docker exec lnd lnclictl newaddress p2wkh"
 echo "     -> Use esa dirección en un faucet de testnet4, p.ej: https://coinfaucet.eu/en/btc-testnet4/"
+echo "  4) La wallet debe estar DESBLOQUEADA para que RTL y satoshi-odyssey muestren datos:"
+echo "     docker exec -it lnd lnclictl unlock"
 echo ""
 echo "Para ver los logs: docker compose logs -f"
