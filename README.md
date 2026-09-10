@@ -58,6 +58,14 @@ Integrar las siguientes dos aplicaciones web que son clientes web para gestión 
 Tener en cuenta, si las hay, dependencias a los otros servicios, posibles puertos repetidos, y verificar que la estructura del proyecto quede estable.
 Actualizar el archivo README.md (u otros archivos) en la medida de lo necesario.
 Generar y explicar un plan para revisarlo y verificarlo, y posteriormente ejecutarlo.
+
+## Tercer prompt:
+
+La siguiente iteración de este proyecto será Fase 6: Integrar LNbits.
+Se deben leer y analizar los archivos "modulo_7_lnbits_backend.md" y "modulo_8_canales_peers.md" donde se encontrarán instrucciones, requerimientos y sugerencias para la instalación, configuración e integración de LNbits.
+Tener en cuenta las instrucciones indicadas en "modulo_7_lnbits_backend.md", tales como UV, repositorio y configuración de LNbits, y demás pasos.
+Actualizar README.md y otros archivos en la medida de lo necesario.
+Generar y explicar un plan para revisarlo y verificarlo, y posteriormente ejecutarlo.
 ```
 
 Esta infraestructura se construye de forma incremental según un curso con fases iterativas. Cada fase agrega componentes sobre las anteriores:
@@ -67,6 +75,7 @@ Esta infraestructura se construye de forma incremental según un curso con fases
 3. **Fase 3**: LND (Lightning Network Daemon).
 4. **Fase 4**: Financiación del nodo (faucets de TestNet4 - proceso manual documentado).
 5. **Fase 5**: Integración de clientes web para LND: RTL y satoshi-odyssey.
+6. **Fase 6**: Integración de LNbits (backend de wallets, instalado desde fuente con UV).
 
 ## Requisitos previos
 
@@ -108,6 +117,8 @@ docker compose version
 ├── phase5-satodyssey/          # FASE 5: satoshi-odyssey (cliente web)
 │   ├── Dockerfile              # Flask + jq + lncli v0.19.0-beta
 │   └── lncli-remote            # Wrapper lncli → contenedor lnd
+├── phase6-lnbits/              # FASE 6: LNbits (backend de wallets)
+│   └── Dockerfile              # Build desde fuente con UV (tag v1.5.6)
 └── README.md
 ```
 
@@ -120,6 +131,7 @@ docker compose version
 | lnd      | `lnd` | 9735 (Lightning), 8080 (REST), 10009 (gRPC) | Lightning Network Daemon |
 | rtl          | `rtl` | 3000 (web) | Cliente web RTL para LND |
 | satoshi-odyssey | `satoshi-odyssey` | 9630 (web) | Dashboard web satoshi-odyssey para LND |
+| lnbits      | `lnbits` | 5000 (web) | LNbits: backend de wallets sobre LND |
 
 > `rtl-config-init` es un contenedor **one-shot** (no se queda ejecutándose): genera `/RTL/config/RTL-Config.json` en el volumen `rtl_config` a partir de la plantilla antes de que arranque RTL.
 
@@ -136,9 +148,9 @@ La forma más sencilla es usar el script de despliegue:
 El script realiza las siguientes verificaciones automáticas:
 1. Comprueba que Docker y Docker Compose estén disponibles.
 2. Construye todas las imágenes (multi-stage).
-3. Levanta los servicios (incluidos RTL y satoshi-odyssey).
+3. Levanta los servicios (incluidos RTL, satoshi-odyssey y LNbits).
 4. Muestra el estado de los contenedores.
-5. Verifica que `bitcoind`, `lnd`, Tor, RTL y satoshi-odyssey respondan.
+5. Verifica que `bitcoind`, `lnd`, Tor, RTL, satoshi-odyssey y LNbits respondan.
 
 ### 2. Comandos individuales (alternativa)
 
@@ -178,6 +190,7 @@ lnd              Up (healthy)              0.0.0.0:9735, 8080, 10009
 ubuntu-tor-ssh   Up (healthy)              0.0.0.0:22, 9050, 9051
 rtl              Up (healthy)              0.0.0.0:3000->3000
 satoshi-odyssey  Up (healthy)              0.0.0.0:9630->9630
+lnbits           Up (healthy)              0.0.0.0:5000->5000
 ```
 
 **Bitcoin Core (Fase 2)** — `bitcoin-cli -testnet4 getblockchaininfo` responde:
@@ -218,6 +231,9 @@ docker exec ubuntu-tor-ssh torsocks curl -s https://check.torproject.org/api/ip
 
 # SSH al contenedor base (password en .env: SSH_PASSWORD)
 ssh root@localhost
+
+# LNbits (Fase 6): responde la aplicación
+curl -fsS -o /dev/null http://localhost:${LNBITS_PORT}/ && echo "LNbits OK"
 ```
 
 > **Primera vez (LND)**: cree la wallet con `lnclictl create`. **Guarde la semilla de 24 palabras en un lugar seguro**, es la única forma de recuperar los fondos.
@@ -304,6 +320,69 @@ docker exec satoshi-odyssey /usr/local/bin/lncli-remote --network=testnet4 getin
 docker compose logs rtl
 ```
 
+### 6. FASE 6: LNbits (backend de wallets)
+
+LNbits es un servidor Python que se sitúa sobre la fuente de financiación LND y proporciona wallets aisladas, una API limpia y un sistema de extensiones. Se integra como servicio del compose siguiendo las instrucciones del **módulo 7** (`modulo_7_lnbits_backend.md`): instalación desde el repositorio oficial con **UV**, y configuración de la fuente de financiación **manual** desde la UI.
+
+**Cómo se construye** (`phase6-lnbits/Dockerfile`, multi-stage):
+
+- Imagen base `python:3.12-slim-bookworm`.
+- Instala **UV** (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
+- `git clone --depth 1 --branch ${LNBITS_VERSION}` del repo `lnbits/lnbits` (versión por defecto `v1.5.6`, configurable con `LNBITS_VERSION` en el `.env`).
+- `uv sync --all-extras` (instala todas las extensiones, igual que el módulo 7).
+- Arranque con `uv run lnbits` en `http://localhost:5000` (`HOST=0.0.0.0`).
+- Corre como **root** (igual que la imagen oficial) para poder leer el `admin.macaroon` y el `tls.cert` de LND (ficheros `0600` de root) desde el volumen `lnd_data` montado en solo lectura.
+
+**Acceso y primer arranque:**
+
+1. Abra `http://localhost:5000`. En el primer acceso LNbits muestra el **asistente de creación del administrador** (email + password). Es ese usuario quien gestiona la configuración del servidor.
+2. Los datos de LNbits (base de datos SQLite, settings, extensiones) se guardan en el volumen `lnbits_data` (`/app/data`), de modo que sobreviven a reinicios.
+
+**Fuente de financiación (módulo 7, paso manual):**
+
+En la UI diríjase a **Settings → Funding Sources**, seleccione **Lightning Network Daemon (LND Rest)** e introduzca los siguientes valores (**paths dentro del contenedor**, donde `lnd_data` está montado en `/data` en solo lectura):
+
+| Campo | Valor |
+|-------|-------|
+| Endpoint | `https://lnd:8080` |
+| Certificate | `/data/lnd/tls.cert` |
+| Macaroon | `/data/lnd/data/chain/bitcoin/testnet4/admin.macaroon` |
+
+Oprima **SAVE**. La wallet de LND debe estar **desbloqueada** para operar (`docker exec -it lnd lnclictl unlock`); mientras esté cifrada el backend reportará "wallet locked".
+
+> En el despliegue local, el certificado autofirmado de LND es aceptado porque LNbits lo usa como certificado de confianza (pinning) y el binario REST de LND responde con SAN `DNS:lnd`.
+
+**Referencia (módulo 8) — operar canales y peers:**
+
+Comandos de `lncli` (el wrapper `lnclictl` ya incluye `--network=testnet4` y los paths del contenedor):
+
+```bash
+# Conectar a un nodo (P2P)
+docker exec lnd lnclictl connect <pubkey>@<host>:<port>
+
+# Abrir un canal (v1, compatibilidad)
+docker exec lnd lnclictl openchannel <pubkey> <local_amt_sat> <push_amt_sat>
+
+# Explorar la red: grafo, nodos y rutas
+docker exec lnd lnclictl describegraph
+docker exec lnd lnclictl getnodeinfo <pubkey>
+```
+
+Para una gestión más avanzada del nodo se recomienda el repo de cabina de control `https://github.com/btcol/lightning-tools`. Conceptos profundos de canales y liquidez en `gestion_de_canales.md` y `liquidez_lightning.md`.
+
+**Verificación (la ejecuta `deploy.sh`):**
+
+```bash
+# LNbits responde (asistente de admin al primer acceso)
+curl -fsS -o /dev/null http://localhost:5000/ && echo "LNbits OK"
+
+# Confirmar que el contenedor puede leer las credenciales de LND para el funding manual
+docker exec lnbits sh -c 'ls -l /data/lnd/tls.cert /data/lnd/data/chain/bitcoin/testnet4/admin.macaroon'
+
+# Logs
+docker compose logs lnbits
+```
+
 ## Cómo detener y limpiar
 
 Usar el script de limpieza (recomendado):
@@ -339,6 +418,7 @@ Los datos se conservan en volúmenes Docker nombrados, para que sobrevivan al re
 - `rtl_config`: config dinámica de RTL que él mismo reescribe (`/RTL/config`).
 - `rtl_db`: base de datos del dashboard de RTL (`/RTL/database`).
 - `satoshi_data`: datos del dashboard de satoshi-odyssey (`/app/data`).
+- `lnbits_data`: base de datos SQLite, settings y extensiones de LNbits (`/app/data`). También monta `lnd_data` en **solo lectura** (`/data`) para el funding manual.
 
 ## Notas de seguridad
 
@@ -347,5 +427,6 @@ Los datos se conservan en volúmenes Docker nombrados, para que sobrevivan al re
 - Los puertos 9050 (TOR SOCKS) y 9051 (TOR control) están expuestos al host vía `ports` en el compose. Para mayor seguridad restrínjalos a `127.0.0.1:9050:9050`.
 - El SSH del contenedor base usa la contraseña definida en `SSH_PASSWORD` del `.env`. Cámbiela antes de exponer el puerto 22 a redes no confiables.
 - Los clientes web de la Fase 5 usan credenciales del `.env` (`RTL_MULTIPASS`, `SATODYSSEY_USER`/`SATODYSSEY_PASS`). RTL **rechaza contraseñas débiles** (`password`, `changeme`, `moneyprintergobrrr`) y obliga a cambiarlas; use contraseñas de laboratorio robustas. Ambos servicios montan `lnd_data` en **solo lectura** para no alterar el nodo, pero cualquier persona con acceso a la UI podrá operar fondos (RTL) o leer el estado del nodo (ambos) si la wallet está desbloqueada.
+- LNbits (Fase 6) usa `AUTH_HTTPS_ONLY=false` para permitir el login por HTTP en `http://localhost:5000` (como indica el módulo 7). El administrador se crea en el primer acceso a la UI y sus credenciales viven en la base de datos local (volumen `lnbits_data`). Si va a exponer LNbits más allá de la red local, active `AUTH_HTTPS_ONLY=true` (o un proxy con TLS) y no deje puertos abiertos. LNbits monta `lnd_data` en **solo lectura**, pero quien acceda al admin podrá operar los fondos de la wallet si esta está desbloqueada.
 
 > **Nota sobre LND y Tor**: LND (`tor.active=1`) necesita el Tor controller para crear su servicio oculto v3. Por eso apunta a `tor.socks=base:9050` y `tor.control=base:9051` con la password `TOR_PASSWORD` del `.env`. Si se cambia la password, debe regenerarse el hash (`tor --hash-password`), actualizar `TOR_HASHED_CONTROL_PASSWORD` en el `.env` y actualizar `TOR_PASSWORD`.

@@ -121,6 +121,20 @@ verify_services() {
         echo -e "  ${RED}✗ satoshi-odyssey no responde aún en http://localhost:${SATODYSSEY_PORT}${NC}"
     fi
 
+    # Verificar LNbits (Fase 6)
+    echo -e "${YELLOW}→ Verificando LNbits (Fase 6)...${NC}"
+    if curl -fsS -o /dev/null --max-time 15 "http://localhost:${LNBITS_PORT}/" 2>/dev/null; then
+        echo -e "  ${GREEN}✓ LNbits responde en http://localhost:${LNBITS_PORT} (asistente de admin al primer acceso)${NC}"
+        # Confirmar que el contenedor puede leer las credenciales de LND para el funding manual
+        if docker exec lnbits sh -c 'test -r /data/lnd/tls.cert && test -r /data/lnd/data/chain/bitcoin/testnet4/admin.macaroon' 2>/dev/null; then
+            echo -e "  ${GREEN}✓ LNbits puede leer tls.cert y admin.macaroon de LND (montado en /data)${NC}"
+        else
+            echo -e "  ${RED}✗ LNbits no puede leer las credenciales de LND${NC}"
+        fi
+    else
+        echo -e "  ${RED}✗ LNbits no responde aún en http://localhost:${LNBITS_PORT}${NC}"
+    fi
+
     echo ""
     echo -e "${GREEN}=== Proceso de despliegue completado ===${NC}"
 }
@@ -138,10 +152,11 @@ echo "  - Bitcoin Core RPC: http://localhost:18332 (testnet4, prune 550 MiB)"
 echo "  - LND gRPC: localhost:10009 | REST: http://localhost:8080 | Lightning: 9735"
 echo "  - RTL (Fase 5):          http://localhost:${RTL_PORT} (password: ${RTL_MULTIPASS})"
 echo "  - satoshi-odyssey (Fase 5): http://localhost:${SATODYSSEY_PORT} (user/pass: ${SATODYSSEY_USER}/${SATODYSSEY_PASS})"
+echo "  - LNbits (Fase 6):          http://localhost:${LNBITS_PORT} (crear admin al primer acceso)"
 echo "  - SSH: ssh root@localhost (password: ${SSH_PASSWORD})"
 echo "  - Tor SOCKS: localhost:9050 | Tor Control: localhost:9051"
 echo ""
-echo -e "${YELLOW}Pasos siguientes (Fases 3, 4 y 5 del curso):${NC}"
+echo -e "${YELLOW}Pasos siguientes (Fases 3, 4, 5 y 6 del curso):${NC}"
 echo "  1) Crear la wallet de LND:   docker exec -it lnd lnclictl create"
 echo "     >> GUARDE LA SEMILLA DE 24 PALABRAS EN UN LUGAR SEGURO <<"
 echo "  2) Verificar LND:            docker exec lnd lnclictl getinfo"
@@ -150,5 +165,15 @@ echo "     docker exec lnd lnclictl newaddress p2wkh"
 echo "     -> Use esa dirección en un faucet de testnet4, p.ej: https://coinfaucet.eu/en/btc-testnet4/"
 echo "  4) La wallet debe estar DESBLOQUEADA para que RTL y satoshi-odyssey muestren datos:"
 echo "     docker exec -it lnd lnclictl unlock"
+echo "  5) Primer acceso a LNbits (FASE 6):"
+echo "     - Abra http://localhost:${LNBITS_PORT} y cree el admin (email + password)"
+echo "     - Settings -> Funding Sources -> 'Lightning Network Daemon (LND Rest)':"
+echo "         . Endpoint:    https://lnd:8080"
+echo "         . Certificate: /data/lnd/tls.cert"
+echo "         . Macaroon:    /data/lnd/data/chain/bitcoin/testnet4/admin.macaroon"
+echo "     - SAVE. La wallet de LND debe estar desbloqueada para operar."
+echo "  6) (Referencia modulo_8) Canales/peers con --network=testnet4:"
+echo "     docker exec lnd lnclictl connect <pubkey>@<host>:<port>"
+echo "     docker exec lnd lnclictl openchannel <pubkey> <amt_sat> <push_sat>"
 echo ""
 echo "Para ver los logs: docker compose logs -f"

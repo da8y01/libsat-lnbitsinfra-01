@@ -47,3 +47,11 @@ Integrar las siguientes dos aplicaciones web que son clientes web para gestión 
 Tener en cuenta, si las hay, dependencias a los otros servicios, posibles puertos repetidos, y verificar que la estructura del proyecto quede estable.
 Actualizar el archivo README.md (u otros archivos) en la medida de lo necesario.
 Generar y explicar un plan para revisarlo y verificarlo, y posteriormente ejecutarlo.
+
+## Tercer prompt:
+
+La siguiente iteración de este proyecto será Fase 6: Integrar LNbits.
+Se deben leer y analizar los archivos "modulo_7_lnbits_backend.md" y "modulo_8_canales_peers.md" donde se encontrarán instrucciones, requerimientos y sugerencias para la instalación, configuración e integración de LNbits.
+Tener en cuenta las instrucciones indicadas en "modulo_7_lnbits_backend.md", tales como UV, repositorio y configuración de LNbits, y demás pasos.
+Actualizar README.md y otros archivos en la medida de lo necesario.
+Generar y explicar un plan para revisarlo y verificarlo, y posteriormente ejecutarlo.
