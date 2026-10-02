@@ -370,6 +370,23 @@ docker exec lnd lnclictl getnodeinfo <pubkey>
 
 Para una gestión más avanzada del nodo se recomienda el repo de cabina de control `https://github.com/btcol/lightning-tools`. Conceptos profundos de canales y liquidez en `gestion_de_canales.md` y `liquidez_lightning.md`.
 
+**Resultados operativos — canal abierto y prueba de rutas/factura (30-sep-2026):**
+
+Se conectaron 3 peers del seed oficial de testnet4 (`test4.nodes.lightning.wiki`) para sincronizar el grafo por gossip (`synced_to_graph: true`, ~49 nodos / 65 canales) y se abrió el primer canal:
+
+| Peer | Estado |
+|------|--------|
+| `0391a0f5…` alias **btcol-testnet4** (`2gctyyg7…nghxsqd.onion:9735`) | Conectado + **canal abierto y activo** |
+| `024c6e1e…` (atomiq), `020d84fb…`, `03713bae…` | Conectados (peers, sin canal) |
+
+- **Canal**: `local 446 530` / `remote 50 000` sats (push), público, `chan_id 169989995212374017`.
+- **Funding**: `1052123782bbe72ed81d09d222c4308cd53af6725abf54943dc5efe02e30f94e`, confirmada en el bloque **154605** (3 confs).
+- **Nota técnica**: el primer intento de `openchannel` falló porque LND usó su `fallbackfee` (200 sat/vB) al fallar la estimación de bitcoind; con `--sat_per_vbyte=1` (tarifa real del mempool testnet4) se completó.
+- **Factura de prueba** (para ser pagada *hacia* nuestro nodo): `lntb10u1p4t66cwpp5…`, 1000 sats, memo `prueba-ruta`, `r_hash 8f1ec2f4…`, destino `02eec87a…`.
+- **Rutas verificadas**: directa a btcol (1 hop, fee 0) y multi-hop a atomiq (2 hops `nosotros→btcol→atomiq`, fee 201 msat, `success_prob 1`).
+- **Pago no concretado**: keysend rechazado por los receptores (`FAILURE_REASON_INCORRECT_PAYMENT_DETAILS`, no habilitan `accept-keysend`) y el "self-payment" de la propia factura está prohibido por LND. Para el pago end-to-end hace falta una factura generada por el **destinatario** (out-of-band) o activar `accept-keysend` en btcol.
+- Monedero restante tras abrir el canal: **139 561 sats** confirmados.
+
 **Verificación (la ejecuta `deploy.sh`):**
 
 ```bash
